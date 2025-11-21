@@ -1,0 +1,25 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "int4-quant-lib"
+version = "0.1.0"
+description = "Symmetric and asymmetric int4 quantization kernels (Triton) with drop-in Linear replacement."
+readme = "README.md"
+requires-python = ">=3.9"
+authors = [{ name = "PeMikj" }]
+license = { text = "MIT" }
+keywords = ["quantization", "triton", "llm"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+dependencies = []
+
+[project.urls]
+Source = "https://github.com/PeMikj/int4"
+
+[tool.setuptools.packages.find]
+include = ["quant_lib*"]
