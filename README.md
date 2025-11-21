@@ -34,3 +34,37 @@ print(tokenizer.decode(out[0], skip_special_tokens=True))
 
 Если нужен асимметричный вариант, просто передайте `mode="asym"`. Код ядра соответствует содержимому оригинальных ноутов; `TARGETS`
 подхватывается как множество имён дочерних модулей `torch.nn.Linear`, которые будут заменены на int4-слои.
+
+## Сохранение и логирование (пример для Kaggle)
+
+```python
+# после замены слоёв и расчёта ppl = fast_ppl(...)
+from pathlib import Path
+import csv, datetime
+
+save_dir = Path(f"quantized_model_sym")  # или asym
+save_dir.mkdir(exist_ok=True)
+model.save_pretrained(save_dir, safe_serialization=True)
+tokenizer.save_pretrained(save_dir)
+
+log_path = Path("metrics_log.csv")
+row = {
+    "timestamp": datetime.datetime.utcnow().isoformat(),
+    "model": model_name,
+    "quant": "sym",
+    "targets": ";".join(sorted(TARGETS)),
+    "ppl": float(ppl),
+    "batch_size": 8,
+    "max_tokens": 128,
+    "limit": 5000,
+}
+exists = log_path.exists()
+with log_path.open("a", newline="") as f:
+    writer = csv.DictWriter(f, fieldnames=row.keys())
+    if not exists:
+        writer.writeheader()
+    writer.writerow(row)
+print("Saved model to", save_dir, "and metrics to", log_path)
+```
+
+Если на среде Triton не собирается, можно принудительно включить торч-фоллбек: `INT4_USE_TRITON=0` в переменных окружения.
