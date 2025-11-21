@@ -1,3 +1,4 @@
+import os
 import torch
 import torch.nn as nn
 import triton
@@ -14,6 +15,9 @@ DEFAULT_TARGETS: Set[str] = {
     "up_proj",
     "down_proj",
 }
+
+# Allow disabling Triton path (e.g., if GPU/driver is incompatible).
+USE_TRITON = os.getenv("INT4_USE_TRITON", "1") != "0"
 
 
 # ------------------------- Symmetric int4 ------------------------- #
@@ -164,28 +168,48 @@ def matmul_fp16_int4_sym(a: torch.Tensor, b_packed: torch.Tensor, scales: torch.
 
     assert packed_K >= (K + 1) // 2
 
-    c = torch.empty((M, N), dtype=torch.float16, device=a.device)
+    if USE_TRITON:
+        try:
+            c = torch.empty((M, N), dtype=torch.float16, device=a.device)
+            grid = (triton.cdiv(M, 64), triton.cdiv(N, 64))
+            _matmul_fp16_int4_sym[grid](
+                a,
+                b_packed,
+                scales,
+                c,
+                M,
+                N,
+                K,
+                a.stride(0),
+                a.stride(1),
+                b_packed.stride(0),
+                b_packed.stride(1),
+                c.stride(0),
+                c.stride(1),
+                BLOCK_M=64,
+                BLOCK_N=64,
+                BLOCK_K=64,
+                NUM_WARPS=4,
+                NUM_STAGES=3,
+            )
+            return c
+        except Exception as exc:  # noqa: BLE001
+            # Fall back to pure Torch if Triton compilation/runtime fails.
+            if os.getenv("INT4_VERBOSE_FALLBACK", "1") != "0":
+                print(f"[int4] Symmetric Triton matmul failed, fallback to torch: {exc}")
 
-    grid = (triton.cdiv(M, 64), triton.cdiv(N, 64))
-    _matmul_fp16_int4_sym[grid](
-        a,
-        b_packed,
-        scales,
-        c,
-        M,
-        N,
-        K,
-        a.stride(0),
-        a.stride(1),
-        b_packed.stride(0),
-        b_packed.stride(1),
-        c.stride(0),
-        c.stride(1),
-        BLOCK_M=64,
-        BLOCK_N=64,
-        BLOCK_K=64,
-    )
-    return c
+    # Torch fallback: unpack int4 and multiply.
+    device = a.device
+    cols = torch.arange(K, device=device)
+    pack_idx = cols // 2
+    is_odd = (cols % 2 == 1)
+
+    b_low = (b_packed & 0x0F).to(torch.float32) - 8.0
+    b_high = ((b_packed >> 4) & 0x0F).to(torch.float32) - 8.0
+    weight = torch.where(is_odd[:, None], b_high[pack_idx], b_low[pack_idx])
+    weight = (weight * scales).to(torch.float16)
+
+    return torch.matmul(a, weight)
 
 
 class SymmetricQuantLinear(nn.Module):
@@ -391,26 +415,44 @@ def matmul_fp16_int4_asym(
     packed_K, N = b_packed.shape
     assert packed_K >= (K + 1) // 2
 
-    c = torch.empty((M, N), dtype=torch.float16, device=a.device)
+    if USE_TRITON:
+        try:
+            c = torch.empty((M, N), dtype=torch.float16, device=a.device)
 
-    grid = (triton.cdiv(M, 64), triton.cdiv(N, 64))
-    _matmul_fp16_int4_asym[grid](
-        a,
-        b_packed,
-        scales,
-        zeros,
-        c,
-        M,
-        N,
-        K,
-        a.stride(0),
-        a.stride(1),
-        b_packed.stride(0),
-        b_packed.stride(1),
-        c.stride(0),
-        c.stride(1),
-    )
-    return c
+            grid = (triton.cdiv(M, 64), triton.cdiv(N, 64))
+            _matmul_fp16_int4_asym[grid](
+                a,
+                b_packed,
+                scales,
+                zeros,
+                c,
+                M,
+                N,
+                K,
+                a.stride(0),
+                a.stride(1),
+                b_packed.stride(0),
+                b_packed.stride(1),
+                c.stride(0),
+                c.stride(1),
+            )
+            return c
+        except Exception as exc:  # noqa: BLE001
+            if os.getenv("INT4_VERBOSE_FALLBACK", "1") != "0":
+                print(f"[int4] Asymmetric Triton matmul failed, fallback to torch: {exc}")
+
+    device = a.device
+    cols = torch.arange(K, device=device)
+    pack_idx = cols // 2
+    is_odd = (cols % 2 == 1)
+
+    b_low = (b_packed & 0x0F).to(torch.float32)
+    b_high = ((b_packed >> 4) & 0x0F).to(torch.float32)
+    weight = torch.where(is_odd[:, None], b_high[pack_idx], b_low[pack_idx])
+    weight = (weight - zeros) * scales
+    weight = weight.to(torch.float16)
+
+    return torch.matmul(a, weight)
 
 
 class AsymmetricQuantLinear(nn.Module):
