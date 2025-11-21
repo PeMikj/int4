@@ -48,6 +48,7 @@ model.save_pretrained(save_dir, safe_serialization=True)
 tokenizer.save_pretrained(save_dir)
 
 log_path = Path("metrics_log.csv")
+ppl = fast_ppl(model, tokenizer, batch_size=8, max_tokens=128, limit=5000)  # или подставьте своё значение
 row = {
     "timestamp": datetime.datetime.utcnow().isoformat(),
     "model": model_name,
