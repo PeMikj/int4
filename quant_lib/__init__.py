@@ -8,6 +8,7 @@ from .int4 import (
     matmul_fp16_int4_sym,
     matmul_fp16_int4_asym,
 )
+from .ppl import fast_ppl
 
 __all__ = [
     "DEFAULT_TARGETS",
@@ -18,4 +19,5 @@ __all__ = [
     "quantize_rowwise_int4_asym",
     "matmul_fp16_int4_sym",
     "matmul_fp16_int4_asym",
+    "fast_ppl",
 ]
