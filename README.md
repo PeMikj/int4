@@ -1,12 +1,12 @@
 # Quantization helper for Kaggle notebooks
 
-Интенсивные куски из `sym.ipynb` и `assym.ipynb` вынесены в модуль `quant_lib`.
-Он содержит симметричную и асимметричную int4-квантизации с выбором слоёв через `TARGETS`.
+Модуль `quant_lib`, содержит симметричную и асимметричную int4-квантизации с выбором слоёв через `TARGETS`. 
+Можно также запускать ноутбуками sym.ipynb assym.ipynb
 
 ## Использование в Kaggle/Colab
 
 ```bash
-pip install git+https://github.com/<your-org>/<your-repo>.git  # после того как запушите этот код
+pip install git+https://github.com/PeMikj/int4
 ```
 
 Пример ноутбука:
