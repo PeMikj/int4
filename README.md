@@ -93,10 +93,9 @@ with log_path.open("a", newline="") as f:
 print("PPL:", ppl, "| saved:", save_dir, "| log:", log_path)
 
 ```
-скорость (сравнение с pytorch) 
-```<img width="861" height="630" alt="Screenshot from 2025-11-22 01-03-27" src="https://github.com/user-attachments/assets/69b85b20-ec5c-4720-9d82-545f377ff381" />```
+скорость (сравнение с pytorch)  
+<img width="861" height="630" alt="speed test" src="img/speed_test.png" />
 
-замеры перплекии
-```<img width="1033" height="552" alt="Screenshot from 2025-11-22 11-57-58" src="https://github.com/user-attachments/assets/8236d41c-f42c-43dd-8a7a-0dae39620786" />```
-
+замеры перплекии  
+<img width="1033" height="552" alt="perplexity measurements" src="img/perplexity.png" />
 
