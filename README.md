@@ -7,7 +7,7 @@
 
 ```bash
 pip install git+https://github.com/PeMikj/int4
-
+```
 
 
 Пример ноутбука:
