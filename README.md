@@ -24,7 +24,7 @@ from transformers import AutoTokenizer, AutoModelForCausalLM
 from quant_lib import replace_linears_with_quant, DEFAULT_TARGETS
 
 # какие линейные слои квантизировать
-TARGETS = {"q_proj", "k_proj", "v_proj", "o_proj", "gate_proj"}  # или DEFAULT_TARGETS
+TARGETS = {"q_proj", "k_proj", "v_proj", "o_proj", "gate_proj"}
 
 model_name = "unsloth/Llama-3.2-1B-Instruct"
 tokenizer = AutoTokenizer.from_pretrained(model_name)
