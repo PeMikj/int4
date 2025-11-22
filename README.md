@@ -1,17 +1,24 @@
 # Quantization helper for Kaggle notebooks
 
 Модуль `quant_lib`, содержит симметричную и асимметричную int4-квантизации с выбором слоёв через `TARGETS`. 
-Можно также запускать ноутбуками sym.ipynb assym.ipynb
+Можно также запускать ноутбуками sym.ipynb asym.ipynb
 
 ## Использование в Kaggle/Colab
 
 ```bash
 pip install git+https://github.com/PeMikj/int4
-```
+
+
 
 Пример ноутбука:
 
 ```python
+!pip install torch==2.3.0 --index-url https://download.pytorch.org/whl/cu121 -qq 
+!pip install triton==2.1.0 -qq 
+!pip install bitsandbytes==0.41.1 -qq 
+!pip install unsloth -qq
+!pip install git+https://github.com/PeMikj/int4
+
 import torch
 from transformers import AutoTokenizer, AutoModelForCausalLM
 from quant_lib import replace_linears_with_quant, DEFAULT_TARGETS
@@ -32,17 +39,17 @@ out = model.generate(**inputs, max_new_tokens=64)
 print(tokenizer.decode(out[0], skip_special_tokens=True))
 ```
 
-Если нужен асимметричный вариант, просто передайте `mode="asym"`. Код ядра соответствует содержимому оригинальных ноутов; `TARGETS`
-подхватывается как множество имён дочерних модулей `torch.nn.Linear`, которые будут заменены на int4-слои.
-
-Если на среде Triton не собирается, можно принудительно включить торч-фоллбек: `INT4_USE_TRITON=0` в переменных окружения.
+Если нужен асимметричный вариант, просто передайте `mode="asym"`. 
 
 ## Пример: 3 шага — квантизация → сохранение → перплексия + лог
 
 ```python
 # 0) Установка (Kaggle)
-!pip install -q torch==2.3.1 --index-url https://download.pytorch.org/whl/cu121
-!pip install -q triton==2.3.1 bitsandbytes transformers accelerate datasets git+https://github.com/PeMikj/int4.git
+!pip install torch==2.3.0 --index-url https://download.pytorch.org/whl/cu121 -qq 
+!pip install triton==2.1.0 -qq 
+!pip install bitsandbytes==0.41.1 -qq 
+!pip install unsloth -qq
+!pip install git+https://github.com/PeMikj/int4
 
 import csv, datetime
 from pathlib import Path
@@ -84,4 +91,12 @@ with log_path.open("a", newline="") as f:
         writer.writeheader()
     writer.writerow(row)
 print("PPL:", ppl, "| saved:", save_dir, "| log:", log_path)
+
 ```
+скорость (сравнение с pytorch) 
+```<img width="861" height="630" alt="Screenshot from 2025-11-22 01-03-27" src="https://github.com/user-attachments/assets/69b85b20-ec5c-4720-9d82-545f377ff381" />```
+
+замеры перплекии
+```<img width="1033" height="552" alt="Screenshot from 2025-11-22 11-57-58" src="https://github.com/user-attachments/assets/8236d41c-f42c-43dd-8a7a-0dae39620786" />```
+
+
