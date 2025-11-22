@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "int4-quant-lib"
-version = "0.1.2"
+version = "0.1.3"
 description = "Symmetric and asymmetric int4 quantization kernels (Triton) with drop-in Linear replacement."
 readme = "README.md"
 requires-python = ">=3.9"
