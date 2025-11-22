@@ -186,11 +186,6 @@ def matmul_fp16_int4_sym(a: torch.Tensor, b_packed: torch.Tensor, scales: torch.
                 b_packed.stride(1),
                 c.stride(0),
                 c.stride(1),
-                BLOCK_M=64,
-                BLOCK_N=64,
-                BLOCK_K=64,
-                NUM_WARPS=4,
-                NUM_STAGES=3,
             )
             return c
         except Exception as exc:  # noqa: BLE001
